@@ -13,13 +13,12 @@ import * as api from "../lib/api";
 import {
   Moon,
   Baby,
-  Droplets,
   Milk,
-  Heart,
   CloudRain,
   Clock,
   ListChecks,
   Ruler,
+  Download,
 } from "lucide-react";
 import { Link } from "react-router";
 
@@ -82,9 +81,20 @@ export default function Dashboard() {
     setShowQuickAdd(false);
   };
 
-  const handleStartBreast = (side: "left" | "right") => {
-    navigate("/feed", { state: { startBreast: side } });
-    setShowQuickAdd(false);
+  const handleExport = async () => {
+    const response = await api.downloadExport();
+    if (response.error || !response.data) {
+      showToast("error", response.error ?? "Unable to export backup");
+      return;
+    }
+
+    const url = URL.createObjectURL(response.data);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `baby-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast("success", "Backup exported");
   };
 
   const handleTimerAction = async (
@@ -132,13 +142,23 @@ export default function Dashboard() {
           month: "short",
         })}
         action={
-          <Link
-            to="/history"
-            className="flex items-center gap-1.5 text-[var(--color-accent)] text-[14px] font-medium press-effect"
-          >
-            <Clock className="w-4 h-4" />
-            History
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleExport}
+              aria-label="Export backup"
+              className="text-[var(--color-accent)] press-effect"
+            >
+              <Download className="w-5 h-5" />
+            </button>
+            <Link
+              to="/history"
+              className="flex items-center gap-1.5 text-[var(--color-accent)] text-[14px] font-medium press-effect"
+            >
+              <Clock className="w-4 h-4" />
+              History
+            </Link>
+          </div>
         }
       />
 
@@ -352,32 +372,11 @@ export default function Dashboard() {
             onClick={handleStartSleep}
           />
           <QuickAddButton
-            icon={<Heart className="w-6 h-6" />}
-            label="Breast (L)"
-            color="bg-[var(--color-pink)]/10 text-[var(--color-pink)]"
-            onClick={() => handleStartBreast("left")}
-          />
-          <QuickAddButton
-            icon={<Heart className="w-6 h-6" />}
-            label="Breast (R)"
-            color="bg-[var(--color-pink)]/10 text-[var(--color-pink)]"
-            onClick={() => handleStartBreast("right")}
-          />
-          <QuickAddButton
             icon={<Milk className="w-6 h-6" />}
             label="Formula"
             color="bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
             onClick={() => {
               navigate("/feed", { state: { tab: "formula" } });
-              setShowQuickAdd(false);
-            }}
-          />
-          <QuickAddButton
-            icon={<Droplets className="w-6 h-6" />}
-            label="Expressed"
-            color="bg-[var(--color-accent-light)]/10 text-[var(--color-accent)]"
-            onClick={() => {
-              navigate("/feed", { state: { tab: "expressed" } });
               setShowQuickAdd(false);
             }}
           />
