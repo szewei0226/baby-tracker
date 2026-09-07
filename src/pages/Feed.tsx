@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback } from "react";
-import { useLocation } from "react-router";
 import {
   PageContainer,
   PageHeader,
@@ -20,7 +19,7 @@ import {
   getToday,
 } from "../lib/utils";
 import * as api from "../lib/api";
-import { Baby, Milk, Droplets } from "lucide-react";
+import { Baby, Milk } from "lucide-react";
 import { EditFeedModal } from "../components/EditEntryModals";
 
 interface FeedEntry {
@@ -37,27 +36,13 @@ interface FeedEntry {
   notes: string | null;
 }
 
-type Tab = "breast" | "formula" | "expressed";
-
 export default function Feed() {
-  const location = useLocation();
-  const locationState = location.state as {
-    startBreast?: "left" | "right";
-    tab?: Tab;
-  } | null;
-
-  const [activeTab, setActiveTab] = useState<Tab>(
-    locationState?.tab || "breast",
-  );
   const [active, setActive] = useState<FeedEntry | null>(null);
   const [entries, setEntries] = useState<FeedEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAmountModal, setShowAmountModal] = useState(false);
   const [amountMl, setAmountMl] = useState("");
   const [notes, setNotes] = useState("");
-  const [amountType, setAmountType] = useState<"formula" | "expressed">(
-    "formula",
-  );
   const [editingEntry, setEditingEntry] = useState<FeedEntry | null>(null);
   const { showToast } = useToast();
 
@@ -76,25 +61,6 @@ export default function Feed() {
   useEffect(() => {
     refresh();
   }, [refresh]);
-
-  // Handle auto-start breast from quick add
-  useEffect(() => {
-    if (locationState?.startBreast && !active) {
-      handleStartBreast(locationState.startBreast);
-      // Clear the state so it doesn't re-trigger
-      window.history.replaceState({}, "");
-    }
-  }, [locationState?.startBreast]);
-
-  const handleStartBreast = async (side: "left" | "right") => {
-    const res = await api.startBreastFeed(side);
-    if (res.error) {
-      showToast("error", res.error);
-    } else {
-      showToast("success", `Breast feed started (${side})`);
-      refresh();
-    }
-  };
 
   const handlePause = async () => {
     if (!active) return;
@@ -127,14 +93,12 @@ export default function Feed() {
       return;
     }
 
-    const fn =
-      amountType === "formula" ? api.logFormulaFeed : api.logExpressedFeed;
-    const res = await fn(amount, notes || undefined);
+    const res = await api.logFormulaFeed(amount, notes || undefined);
 
     if (res.error) {
       showToast("error", res.error);
     } else {
-      showToast("success", `${amountType} feed logged (${amount}ml)`);
+      showToast("success", `formula feed logged (${amount}ml)`);
       setShowAmountModal(false);
       setAmountMl("");
       setNotes("");
@@ -152,11 +116,7 @@ export default function Feed() {
     ? (Date.now() - new Date(lastCompleted.started_at).getTime()) / 3600000
     : null;
 
-  const filteredEntries = entries.filter((e) => {
-    if (activeTab === "breast") return e.type === "breast";
-    if (activeTab === "formula") return e.type === "formula";
-    return e.type === "expressed";
-  });
+  const filteredEntries = entries;
 
   return (
     <PageContainer>
@@ -204,69 +164,15 @@ export default function Feed() {
         </Card>
       )}
 
-      {/* Tab selector */}
-      <div className="flex rounded-[var(--radius-md)] bg-[var(--color-surface-secondary)] p-1 mb-6">
-        {(["breast", "expressed", "formula"] as Tab[]).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={cn(
-              "flex-1 py-2 text-[13px] font-semibold rounded-[var(--radius-sm)] transition-all duration-200",
-              activeTab === tab
-                ? "bg-[var(--color-surface)] text-[var(--color-text-primary)] shadow-[var(--shadow-sm)]"
-                : "text-[var(--color-text-secondary)]",
-            )}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </button>
-        ))}
-      </div>
-
-      {/* Actions per tab */}
-      {activeTab === "breast" && !active && (
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <Button size="lg" fullWidth onClick={() => handleStartBreast("left")}>
-            Left
-          </Button>
-          <Button
-            size="lg"
-            fullWidth
-            onClick={() => handleStartBreast("right")}
-          >
-            Right
-          </Button>
-        </div>
-      )}
-
-      {activeTab === "formula" && (
-        <Button
-          size="lg"
-          fullWidth
-          className="mb-6"
-          onClick={() => {
-            setAmountType("formula");
-            setShowAmountModal(true);
-          }}
-        >
-          <Milk className="w-5 h-5" />
-          Log Formula Feed
-        </Button>
-      )}
-
-      {activeTab === "expressed" && (
-        <Button
-          size="lg"
-          fullWidth
-          className="mb-6"
-          onClick={() => {
-            setAmountType("expressed");
-            setShowAmountModal(true);
-          }}
-        >
-          <Droplets className="w-5 h-5" />
-          Log Expressed Feed
-        </Button>
-      )}
+      <Button
+        size="lg"
+        fullWidth
+        className="mb-6"
+        onClick={() => setShowAmountModal(true)}
+      >
+        <Milk className="w-5 h-5" />
+        Log Formula Feed
+      </Button>
 
       {/* Recent entries */}
       <h2 className="text-[15px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide mb-3">
@@ -274,10 +180,7 @@ export default function Feed() {
       </h2>
 
       {filteredEntries.length === 0 && !isLoading ? (
-        <EmptyState
-          icon={<Baby className="w-6 h-6" />}
-          title={`No ${activeTab} feeds yet`}
-        />
+        <EmptyState icon={<Baby className="w-6 h-6" />} title="No feeds yet" />
       ) : (
         <div className="space-y-2">
           {filteredEntries
@@ -350,7 +253,7 @@ export default function Feed() {
       <Modal
         isOpen={showAmountModal}
         onClose={() => setShowAmountModal(false)}
-        title={`Log ${amountType} feed`}
+        title="Log formula feed"
       >
         <div className="space-y-4">
           <Input

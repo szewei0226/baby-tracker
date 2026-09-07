@@ -13,9 +13,7 @@ import * as api from "../lib/api";
 import {
   Moon,
   Baby,
-  Droplets,
   Milk,
-  Heart,
   CloudRain,
   Clock,
   ListChecks,
@@ -80,11 +78,6 @@ export default function Dashboard() {
       showToast("success", "Sleep timer started");
       refresh();
     }
-    setShowQuickAdd(false);
-  };
-
-  const handleStartBreast = (side: "left" | "right") => {
-    navigate("/feed", { state: { startBreast: side } });
     setShowQuickAdd(false);
   };
 
@@ -379,32 +372,11 @@ export default function Dashboard() {
             onClick={handleStartSleep}
           />
           <QuickAddButton
-            icon={<Heart className="w-6 h-6" />}
-            label="Breast (L)"
-            color="bg-[var(--color-pink)]/10 text-[var(--color-pink)]"
-            onClick={() => handleStartBreast("left")}
-          />
-          <QuickAddButton
-            icon={<Heart className="w-6 h-6" />}
-            label="Breast (R)"
-            color="bg-[var(--color-pink)]/10 text-[var(--color-pink)]"
-            onClick={() => handleStartBreast("right")}
-          />
-          <QuickAddButton
             icon={<Milk className="w-6 h-6" />}
             label="Formula"
             color="bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
             onClick={() => {
               navigate("/feed", { state: { tab: "formula" } });
-              setShowQuickAdd(false);
-            }}
-          />
-          <QuickAddButton
-            icon={<Droplets className="w-6 h-6" />}
-            label="Expressed"
-            color="bg-[var(--color-accent-light)]/10 text-[var(--color-accent)]"
-            onClick={() => {
-              navigate("/feed", { state: { tab: "expressed" } });
               setShowQuickAdd(false);
             }}
           />

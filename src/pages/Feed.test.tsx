@@ -33,40 +33,21 @@ describe("Feed", () => {
     expect(await screen.findByText(/today:/i)).toBeInTheDocument();
   });
 
-  test("shows breast tab with left/right buttons", async () => {
+  test("shows Formula logging without removed feeding options", async () => {
     setupFeedHandlers();
     renderAppAsAuthenticated(<Feed />);
-
-    expect(
-      await screen.findByRole("button", { name: /^left$/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /^right$/i }),
-    ).toBeInTheDocument();
-  });
-
-  test("starts breast feed and shows success toast", async () => {
-    setupFeedHandlers();
-    const user = userEvent.setup();
-    renderAppAsAuthenticated(<Feed />);
-
-    await user.click(await screen.findByRole("button", { name: /^left$/i }));
-
-    expect(
-      await screen.findByText(/breast feed started \(left\)/i),
-    ).toBeInTheDocument();
-  });
-
-  test("switches to formula tab and shows log button", async () => {
-    setupFeedHandlers();
-    const user = userEvent.setup();
-    renderAppAsAuthenticated(<Feed />);
-
-    await user.click(await screen.findByText("Formula"));
 
     expect(
       await screen.findByRole("button", { name: /log formula feed/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /^left$/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /^right$/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Breast")).not.toBeInTheDocument();
+    expect(screen.queryByText("Expressed")).not.toBeInTheDocument();
   });
 
   test("opens amount modal and logs formula feed", async () => {
@@ -74,11 +55,9 @@ describe("Feed", () => {
     const user = userEvent.setup();
     renderAppAsAuthenticated(<Feed />);
 
-    await user.click(await screen.findByText("Formula"));
     await user.click(
       await screen.findByRole("button", { name: /log formula feed/i }),
     );
-
     await user.type(await screen.findByLabelText(/amount/i), "150");
     await user.click(screen.getByRole("button", { name: /^log feed$/i }));
 
@@ -92,29 +71,17 @@ describe("Feed", () => {
     const user = userEvent.setup();
     renderAppAsAuthenticated(<Feed />);
 
-    await user.click(await screen.findByText("Formula"));
     await user.click(
       await screen.findByRole("button", { name: /log formula feed/i }),
     );
-
-    // Submit without entering an amount
-    await user.click(
-      await screen.findByRole("button", { name: /^log feed$/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /^log feed$/i }));
 
     expect(
       await screen.findByText(/enter a valid amount/i),
     ).toBeInTheDocument();
   });
 
-  test("shows empty state for tab with no entries", async () => {
-    setupFeedHandlers({ entries: [] });
-    renderAppAsAuthenticated(<Feed />);
-
-    expect(await screen.findByText(/no breast feeds yet/i)).toBeInTheDocument();
-  });
-
-  test("shows recent entries filtered by active tab", async () => {
+  test("keeps historical entries readable", async () => {
     setupFeedHandlers({
       entries: [
         createFeedEntry({
@@ -130,110 +97,36 @@ describe("Feed", () => {
           side: null,
           status: "completed",
           amount_ml: 150,
+          duration_seconds: null,
         }),
       ],
     });
     renderAppAsAuthenticated(<Feed />);
 
-    // On breast tab, should see the breast entry
-    expect(await screen.findByText("20m 0s")).toBeInTheDocument();
-    expect(screen.queryByText("150ml")).not.toBeInTheDocument();
+    expect(await screen.findByText("150ml")).toBeInTheDocument();
+    expect(screen.getByText("20m 0s")).toBeInTheDocument();
   });
 
-  test("opens edit modal when clicking an entry", async () => {
+  test("opens edit modal for a formula entry", async () => {
     setupFeedHandlers({
       entries: [
         createFeedEntry({
           id: 1,
-          type: "breast",
+          type: "formula",
           status: "completed",
-          duration_seconds: 1200,
+          amount_ml: 150,
+          duration_seconds: null,
+          notes: "After nap",
         }),
       ],
     });
     const user = userEvent.setup();
     renderAppAsAuthenticated(<Feed />);
 
-    await user.click(await screen.findByText("20m 0s"));
+    await user.click(await screen.findByText("150ml"));
 
     expect(await screen.findByText("Edit Feed")).toBeInTheDocument();
-  });
-
-  test("shows error toast when breast feed start fails", async () => {
-    setupFeedHandlers();
-    server.use(
-      http.post(`${TEST_BASE_URL}/api/feed/breast/start`, () => {
-        return HttpResponse.json({ error: "Already active" }, { status: 409 });
-      }),
-    );
-    const user = userEvent.setup();
-    renderAppAsAuthenticated(<Feed />);
-
-    await user.click(await screen.findByRole("button", { name: /^left$/i }));
-
-    expect(await screen.findByText("Already active")).toBeInTheDocument();
-  });
-
-  test("opens edit modal with prefilled data", async () => {
-    setupFeedHandlers({
-      entries: [
-        createFeedEntry({
-          id: 1,
-          type: "breast",
-          side: "left",
-          status: "completed",
-          duration_seconds: 1200,
-          notes: "Good latch",
-        }),
-      ],
-    });
-    const user = userEvent.setup();
-    renderAppAsAuthenticated(<Feed />);
-
-    await user.click(await screen.findByText("20m 0s"));
-
-    expect(await screen.findByText("Edit Feed")).toBeInTheDocument();
-    expect(screen.getByLabelText(/notes/i)).toHaveValue("Good latch");
-  });
-
-  test("keeps edit modal open when save fails", async () => {
-    setupFeedHandlers({
-      entries: [
-        createFeedEntry({ id: 1, type: "breast", status: "completed" }),
-      ],
-    });
-    server.use(
-      http.put(`${TEST_BASE_URL}/api/feed/:id`, () => {
-        return HttpResponse.json({ error: "Update failed" }, { status: 500 });
-      }),
-    );
-    const user = userEvent.setup();
-    renderAppAsAuthenticated(<Feed />);
-
-    await user.click(await screen.findByText("30m 0s"));
-    expect(await screen.findByText("Edit Feed")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: /^save$/i }));
-
-    expect(await screen.findByText("Update failed")).toBeInTheDocument();
-    expect(screen.getByText("Edit Feed")).toBeInTheDocument();
-  });
-
-  test("closes edit modal without saving on close", async () => {
-    setupFeedHandlers({
-      entries: [
-        createFeedEntry({ id: 1, type: "breast", status: "completed" }),
-      ],
-    });
-    const user = userEvent.setup();
-    renderAppAsAuthenticated(<Feed />);
-
-    await user.click(await screen.findByText("30m 0s"));
-    expect(await screen.findByText("Edit Feed")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: /close/i }));
-
-    expect(screen.queryByText("Edit Feed")).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/notes/i)).toHaveValue("After nap");
   });
 
   test("closes amount modal on close", async () => {
@@ -241,7 +134,6 @@ describe("Feed", () => {
     const user = userEvent.setup();
     renderAppAsAuthenticated(<Feed />);
 
-    await user.click(await screen.findByText("Formula"));
     await user.click(
       await screen.findByRole("button", { name: /log formula feed/i }),
     );
@@ -252,39 +144,10 @@ describe("Feed", () => {
     expect(screen.queryByLabelText(/amount/i)).not.toBeInTheDocument();
   });
 
-  test("deletes entry with double-tap confirmation", async () => {
-    setupFeedHandlers({
-      entries: [
-        createFeedEntry({ id: 1, type: "breast", status: "completed" }),
-      ],
-    });
-    const user = userEvent.setup();
-    renderAppAsAuthenticated(<Feed />);
-
-    await user.click(await screen.findByText("30m 0s"));
-    expect(await screen.findByText("Edit Feed")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: /^delete$/i }));
-    expect(
-      await screen.findByText(/tap again to confirm delete/i),
-    ).toBeInTheDocument();
-
-    await user.click(
-      screen.getByRole("button", { name: /tap again to confirm delete/i }),
-    );
-
-    expect(await screen.findByText(/feed deleted/i)).toBeInTheDocument();
-    expect(screen.queryByText("Edit Feed")).not.toBeInTheDocument();
-  });
-
-  test("does not show empty state while loading", async () => {
+  test("shows empty state when there are no entries", async () => {
     setupFeedHandlers({ entries: [] });
     renderAppAsAuthenticated(<Feed />);
 
-    // Tab selector should appear
-    expect(await screen.findByText("Breast")).toBeInTheDocument();
-
-    // Empty state should appear after loading completes
-    expect(await screen.findByText(/no breast feeds yet/i)).toBeInTheDocument();
+    expect(await screen.findByText(/no feeds yet/i)).toBeInTheDocument();
   });
 });
