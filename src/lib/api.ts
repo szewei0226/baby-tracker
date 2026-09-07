@@ -54,6 +54,25 @@ async function fetchApi<T>(
   }
 }
 
+export async function downloadExport(): Promise<ApiResponse<Blob>> {
+  const token = getToken();
+
+  try {
+    const response = await fetch(`${API_BASE}/export?format=json`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
+    if (!response.ok) {
+      const data = (await response.json()) as { error?: string };
+      return { error: data.error ?? "An error occurred" };
+    }
+
+    return { data: await response.blob() };
+  } catch {
+    return { error: "Network error. Please try again." };
+  }
+}
+
 // Auth
 export async function verifyPin(
   pin: string,

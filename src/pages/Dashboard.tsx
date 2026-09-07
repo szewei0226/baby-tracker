@@ -20,6 +20,7 @@ import {
   Clock,
   ListChecks,
   Ruler,
+  Download,
 } from "lucide-react";
 import { Link } from "react-router";
 
@@ -87,6 +88,22 @@ export default function Dashboard() {
     setShowQuickAdd(false);
   };
 
+  const handleExport = async () => {
+    const response = await api.downloadExport();
+    if (response.error || !response.data) {
+      showToast("error", response.error ?? "Unable to export backup");
+      return;
+    }
+
+    const url = URL.createObjectURL(response.data);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `baby-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast("success", "Backup exported");
+  };
+
   const handleTimerAction = async (
     timerType: string,
     entryId: number,
@@ -132,13 +149,23 @@ export default function Dashboard() {
           month: "short",
         })}
         action={
-          <Link
-            to="/history"
-            className="flex items-center gap-1.5 text-[var(--color-accent)] text-[14px] font-medium press-effect"
-          >
-            <Clock className="w-4 h-4" />
-            History
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleExport}
+              aria-label="Export backup"
+              className="text-[var(--color-accent)] press-effect"
+            >
+              <Download className="w-5 h-5" />
+            </button>
+            <Link
+              to="/history"
+              className="flex items-center gap-1.5 text-[var(--color-accent)] text-[14px] font-medium press-effect"
+            >
+              <Clock className="w-4 h-4" />
+              History
+            </Link>
+          </div>
         }
       />
 

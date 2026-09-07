@@ -13,6 +13,7 @@ import dashboard from "./routes/dashboard";
 import history from "./routes/history";
 import dailyTasks from "./routes/dailyTasks";
 import growth from "./routes/growth";
+import exportRoute from "./routes/export";
 
 type AppBindings = {
   Bindings: Env;
@@ -56,6 +57,7 @@ app.route("/api/dashboard", dashboard);
 app.route("/api/history", history);
 app.route("/api/daily-tasks", dailyTasks);
 app.route("/api/growth", growth);
+app.route("/api/export", exportRoute);
 
 // Fallback: serve static assets (SPA)
 app.all("*", async (c) => {

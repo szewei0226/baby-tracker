@@ -1,4 +1,5 @@
 export const TOKEN_KEY = "baby_tracker_token";
+export const APP_VERSION = "1.0.0";
 
 export const FEED_TYPES = ["breast", "formula", "expressed"] as const;
 export const NAPPY_TYPES = ["wet", "dirty", "both"] as const;
