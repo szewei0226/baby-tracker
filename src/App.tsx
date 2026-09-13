@@ -10,6 +10,7 @@ import Pump from "./pages/Pump";
 import History from "./pages/History";
 import DailyTasks from "./pages/DailyTasks";
 import Growth from "./pages/Growth";
+import Medication from "./pages/Medication";
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
                 <Route path="/history" element={<History />} />
                 <Route path="/daily-tasks" element={<DailyTasks />} />
                 <Route path="/growth" element={<Growth />} />
+                <Route path="/medication" element={<Medication />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </AppShell>

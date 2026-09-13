@@ -14,6 +14,7 @@ import history from "./routes/history";
 import dailyTasks from "./routes/dailyTasks";
 import growth from "./routes/growth";
 import exportRoute from "./routes/export";
+import medication from "./routes/medication";
 
 type AppBindings = {
   Bindings: Env;
@@ -57,13 +58,26 @@ app.route("/api/dashboard", dashboard);
 app.route("/api/history", history);
 app.route("/api/daily-tasks", dailyTasks);
 app.route("/api/growth", growth);
+app.route("/api/medications", medication);
 app.route("/api/export", exportRoute);
 
 // Fallback: serve static assets (SPA)
 app.all("*", async (c) => {
   if (c.env.ASSETS) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return c.env.ASSETS.fetch(c.req.raw as any) as unknown as Response;
+    const response = (await c.env.ASSETS.fetch(
+      c.req.raw as any,
+    )) as unknown as Response;
+    if (response.headers.get("content-type")?.includes("text/html")) {
+      const headers = new Headers(response.headers);
+      headers.set("Cache-Control", "no-store");
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+      });
+    }
+    return response;
   }
   return c.json({ error: "Not found" }, 404);
 });

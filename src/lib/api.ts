@@ -457,3 +457,68 @@ export async function getHistorySummary(
 ): Promise<ApiResponse<Record<string, unknown>>> {
   return fetchApi(`/history/summary?from=${from}&to=${to}&tz=${getTzOffset()}`);
 }
+
+// Medication
+export async function getMedications(): Promise<
+  ApiResponse<{
+    plans: Record<string, unknown>[];
+    last_caregiver: string | null;
+  }>
+> {
+  return fetchApi("/medications");
+}
+
+export async function createMedication(
+  plan: Record<string, unknown>,
+): Promise<ApiResponse<{ plan: Record<string, unknown> }>> {
+  return fetchApi("/medications", {
+    method: "POST",
+    body: JSON.stringify(plan),
+  });
+}
+
+export async function completeMedication(
+  id: number,
+): Promise<ApiResponse<{ plan: Record<string, unknown> }>> {
+  return fetchApi(`/medications/${id}/complete`, { method: "POST" });
+}
+
+export async function getMedication(id: number): Promise<
+  ApiResponse<{
+    plan: Record<string, unknown>;
+    administrations: Record<string, unknown>[];
+  }>
+> {
+  return fetchApi(`/medications/${id}`);
+}
+
+export async function createMedicationAdministration(
+  medicationId: number,
+  administration: Record<string, unknown>,
+): Promise<ApiResponse<{ administration: Record<string, unknown> }>> {
+  return fetchApi(`/medications/${medicationId}/administrations`, {
+    method: "POST",
+    body: JSON.stringify(administration),
+  });
+}
+
+export async function updateMedicationAdministration(
+  medicationId: number,
+  administrationId: number,
+  updates: Record<string, unknown>,
+): Promise<ApiResponse<{ administration: Record<string, unknown> }>> {
+  return fetchApi(
+    `/medications/${medicationId}/administrations/${administrationId}`,
+    { method: "PUT", body: JSON.stringify(updates) },
+  );
+}
+
+export async function deleteMedicationAdministration(
+  medicationId: number,
+  administrationId: number,
+): Promise<ApiResponse<{ success: boolean }>> {
+  return fetchApi(
+    `/medications/${medicationId}/administrations/${administrationId}`,
+    { method: "DELETE" },
+  );
+}

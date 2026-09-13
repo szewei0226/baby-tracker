@@ -1,5 +1,13 @@
 import { NavLink, useLocation } from "react-router";
-import { Home, Baby, CloudRain, Moon, ListChecks, Plus } from "lucide-react";
+import {
+  Home,
+  Baby,
+  CloudRain,
+  Moon,
+  ListChecks,
+  Plus,
+  Pill,
+} from "lucide-react";
 import { ReactNode } from "react";
 import { cn } from "../../lib/utils";
 
@@ -18,6 +26,11 @@ const tabs: TabItem[] = [
     path: "/daily-tasks",
     label: "Tasks",
     icon: <ListChecks className="w-6 h-6" />,
+  },
+  {
+    path: "/medication",
+    label: "Medicine",
+    icon: <Pill className="w-6 h-6" />,
   },
 ];
 

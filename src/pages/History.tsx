@@ -21,6 +21,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Pill,
 } from "lucide-react";
 import {
   EditSleepModal,
@@ -44,7 +45,7 @@ type EditPumpModal_Entry = NonNullable<
 >;
 
 interface TimelineEvent {
-  type: "sleep" | "feed" | "nappy" | "pump";
+  type: "sleep" | "feed" | "nappy" | "pump" | "medication";
   time: string;
   entry: Record<string, unknown>;
 }
@@ -102,6 +103,12 @@ export default function History() {
       bg: "bg-[var(--color-warning)]/10",
       label: "Pump",
     },
+    medication: {
+      icon: <Pill className="w-4 h-4" />,
+      color: "text-[var(--color-danger)]",
+      bg: "bg-[var(--color-danger)]/10",
+      label: "Medication",
+    },
   };
 
   const getEventDetail = (event: TimelineEvent): string => {
@@ -132,7 +139,18 @@ export default function History() {
       if (dur) parts.push(formatDuration(dur));
       return parts.join(" - ") || (e.status as string) || "";
     }
+    if (event.type === "medication") {
+      const status = e.status === "skipped" ? "Skipped" : "Given";
+      return `${status} · ${String(e.dose)} ${String(e.unit)}${e.given_by ? ` · ${String(e.given_by)}` : ""}`;
+    }
     return "";
+  };
+
+  const getEventTitle = (event: TimelineEvent): string => {
+    if (event.type === "medication" && event.entry.medication_name) {
+      return String(event.entry.medication_name);
+    }
+    return eventConfig[event.type].label;
   };
 
   return (
@@ -201,7 +219,7 @@ export default function History() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[15px] font-medium text-[var(--color-text-primary)]">
-                      {config.label}
+                      {getEventTitle(event)}
                     </p>
                     <p className="text-[13px] text-[var(--color-text-secondary)] truncate">
                       {getEventDetail(event)}

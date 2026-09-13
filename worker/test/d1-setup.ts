@@ -51,6 +51,8 @@ export async function createTestD1Env(): Promise<Env> {
 
 export async function clearD1Tables(env: Env): Promise<void> {
   const tables = [
+    "medication_administrations",
+    "medication_plans",
     "daily_task_completions",
     "daily_tasks",
     "growth_entries",

@@ -4,6 +4,7 @@ import { createD1SleepRepository } from "../repositories/d1/sleep.d1";
 import { createD1FeedRepository } from "../repositories/d1/feed.d1";
 import { createD1NappyRepository } from "../repositories/d1/nappy.d1";
 import { createD1PumpRepository } from "../repositories/d1/pump.d1";
+import { createD1MedicationRepository } from "../repositories/d1/medication.d1";
 import { localDateToUtcRange } from "../lib/timezone";
 
 const history = new Hono<AppBindings>();
@@ -21,20 +22,44 @@ history.get("/", async (c) => {
   const feedRepo = createD1FeedRepository(c.env);
   const nappyRepo = createD1NappyRepository(c.env);
   const pumpRepo = createD1PumpRepository(c.env);
+  const medicationRepo = createD1MedicationRepository(c.env);
 
-  const [sleeps, feeds, nappies, pumps] = await Promise.all([
+  const [sleeps, feeds, nappies, pumps, plans] = await Promise.all([
     sleepRepo.listByDate(start, end),
     feedRepo.listByDate(start, end),
     nappyRepo.listByDate(start, end),
     pumpRepo.listByDate(start, end),
+    medicationRepo.listPlans(),
   ]);
+
+  const medicationAdministrations = (
+    await Promise.all(
+      plans.map(async (plan) =>
+        (await medicationRepo.listAdministrations(plan.id)).map((entry) => ({
+          ...entry,
+          medication_name: plan.name,
+        })),
+      ),
+    )
+  )
+    .flat()
+    .filter((entry) => {
+      const time = entry.actual_at ?? entry.scheduled_at;
+      if (!time) return false;
+      return time >= start && time < end;
+    });
 
   // Build unified timeline
   type TimelineEvent =
     | { type: "sleep"; time: string; entry: (typeof sleeps)[0] }
     | { type: "feed"; time: string; entry: (typeof feeds)[0] }
     | { type: "nappy"; time: string; entry: (typeof nappies)[0] }
-    | { type: "pump"; time: string; entry: (typeof pumps)[0] };
+    | { type: "pump"; time: string; entry: (typeof pumps)[0] }
+    | {
+        type: "medication";
+        time: string;
+        entry: (typeof medicationAdministrations)[0];
+      };
 
   const events: TimelineEvent[] = [
     ...sleeps.map((e) => ({
@@ -55,6 +80,11 @@ history.get("/", async (c) => {
     ...pumps.map((e) => ({
       type: "pump" as const,
       time: e.started_at,
+      entry: e,
+    })),
+    ...medicationAdministrations.map((e) => ({
+      type: "medication" as const,
+      time: e.actual_at ?? e.scheduled_at ?? e.created_at,
       entry: e,
     })),
   ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());

@@ -103,6 +103,68 @@ export interface DailyTaskWithStatus extends DailyTask {
   next_due_date: string | null;
 }
 
+export type MedicationType = "scheduled" | "prn";
+export type MedicationScheduleMode =
+  | "specific_times"
+  | "interval"
+  | "daily_frequency";
+export type MedicationStatus = "active" | "completed";
+export type MedicationAdministrationStatus = "given" | "skipped";
+export type MedicationCaregiver = "dad" | "mum" | "helper" | "other";
+
+export type MedicationScheduleDefinition =
+  | { mode: "specific_times"; times: string[] }
+  | { mode: "interval"; interval_hours: number; anchor_time: string }
+  | { mode: "daily_frequency"; times: string[] };
+
+export interface MedicationPlanInput {
+  name: string;
+  thumbnail_data?: string | null;
+  dose: string;
+  unit: string;
+  type: MedicationType;
+  schedule_mode?: MedicationScheduleMode | null;
+  schedule_definition?: MedicationScheduleDefinition | null;
+  start_date: string;
+  end_date?: string | null;
+  notes?: string | null;
+  status?: MedicationStatus;
+}
+
+export interface MedicationPlan {
+  id: number;
+  name: string;
+  thumbnail_data: string | null;
+  dose: string;
+  unit: string;
+  type: MedicationType;
+  schedule_mode: MedicationScheduleMode | null;
+  schedule_definition: MedicationScheduleDefinition | null;
+  start_date: string;
+  end_date: string | null;
+  notes: string | null;
+  status: MedicationStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MedicationAdministrationInput {
+  scheduled_at?: string | null;
+  actual_at?: string | null;
+  dose: string;
+  unit: string;
+  given_by?: MedicationCaregiver | null;
+  status: MedicationAdministrationStatus;
+  notes?: string | null;
+}
+
+export interface MedicationAdministration extends MedicationAdministrationInput {
+  id: number;
+  medication_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export type AppBindings = {
   Bindings: Env;
 };

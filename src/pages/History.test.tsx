@@ -103,6 +103,29 @@ describe("History", () => {
     expect(screen.getByText(/wet/i)).toBeInTheDocument();
   });
 
+  test("shows medication name with the shared right-aligned time", async () => {
+    setupHistoryHandlers({
+      events: [
+        {
+          type: "medication",
+          time: "2026-01-01T14:20:00Z",
+          entry: {
+            medication_name: "Paracetamol",
+            dose: "1.5",
+            unit: "mL",
+            given_by: "Mum",
+            status: "given",
+          },
+        },
+      ],
+    });
+    renderAppAsAuthenticated(<History />);
+
+    expect(await screen.findByText("Paracetamol")).toBeInTheDocument();
+    expect(screen.getByText("Given · 1.5 mL · Mum")).toBeInTheDocument();
+    expect(screen.getByText("14:20")).toBeInTheDocument();
+  });
+
   test("opens edit modal when clicking an event", async () => {
     setupHistoryHandlers({
       events: [
